@@ -27,6 +27,16 @@ userItemsRouter.post("/", middleware.userExtractor, async (req, res) => {
   }
 });
 
+// delete a review
+userItemsRouter.delete("/:id", middleware.userExtractor, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM useritems WHERE id = $1", [id]);
+    res.status(200).json("Item was deleted!");
+  } catch (error) {
+    console.log(error.message);
+  }
+});
 
 // update a useritem
 userItemsRouter.put("/:id", middleware.userExtractor, async (req, res) => {

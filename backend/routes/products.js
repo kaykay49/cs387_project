@@ -19,6 +19,8 @@ productsRouter.get("/:id", async (req, res) => {
       id,
     ]);
     res.status(200).json(product.rows[0]);
+  } catch (error) {
+    console.log(error.message);
   }
 });
 
