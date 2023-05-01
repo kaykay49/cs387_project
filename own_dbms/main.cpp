@@ -1,12 +1,15 @@
 #include <boost/asio.hpp> 
 #include <boost/bind/bind.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstdint> 
 #include <iostream>
 #include <list>
 #include <memory>
-
+#include "database.cpp"
 
 using namespace boost::placeholders;
+
+DBMS instance(20, {});
 
 struct Connection {
 	boost::asio::ip::tcp::socket socket;
@@ -31,6 +34,34 @@ public:
 			std::string line;
 			std::getline( is, line );
 			std::cout << "Message Received: " << line << std::endl;
+
+			std::vector<std::string> result;
+			boost::split(result, input, boost::is_any_of("|"));
+			if(result.size()==2){
+				std::vector<std::string> r1;
+				std::vector<double> p1;
+				boost::split(r1, result[1], boost::is_any_of(" "));
+				for(auto u : r1) {
+					p1.push_back(std::stod(u));
+				}
+				auto res = instance.getProductIDs(p1);
+				std::string ress;
+				for(auto u : res) { 
+					ress = ress + " " + std::string(u);
+				}
+				send(con_handle, ress);
+			}else{
+				std::vector<std::string> r1;
+				std::vector<double> p1;
+				boost::split(r1, result[2], boost::is_any_of(" "));
+				for(auto u : r1) {
+					p1.push_back(std::stod(u));
+				}
+
+				auto res = instance.Upsert(Embedding(results[1],p1));
+				send(con_handle, "SUCCEES");
+			}
+			
 		}
 
 		if( !err ) {
@@ -39,6 +70,12 @@ public:
 			std::cerr << "We had an error: " << err.message( ) << std::endl;
 			m_connections.erase( con_handle );
 		}
+	}
+
+	void send(con_handle_t con_handle, std::string res) {
+		auto buff = std::make_shared<std::string>( res );
+		auto handler = boost::bind( &Server::handle_write, this, con_handle, buff, boost::asio::placeholders::error );
+		boost::asio::async_write( con_handle->socket, boost::asio::buffer( *buff ), handler );
 	}
 
 	void do_async_read( con_handle_t con_handle ) {
